@@ -1,5 +1,10 @@
+$secondary: #2D7CE6;
+$light:#E1F1FD;
+$dark:#4F99FD;
+$danger:#FF3300;
 @import "~bootstrap/scss/bootstrap.scss";
 @import './auth';
-@import './dashboard'
+@import './dashboard';
+
 
 

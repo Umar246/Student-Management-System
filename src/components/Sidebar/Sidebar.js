@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Routes from '../../pages/Frontend/Routes';
-import { AiOutlineDoubleRight, AiOutlineMenu, AiOutlinePlus, AiOutlineProfile } from 'react-icons/ai';
-import { MdOutlineDateRange } from 'react-icons/md';
+import { MdOutlineSubject,MdOutlineSpaceDashboard } from 'react-icons/md';
 import { CiLogout } from 'react-icons/ci';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { Layout, Menu, Button, theme, message } from 'antd';
@@ -9,9 +8,9 @@ import { Link } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
-import {PiBag} from 'react-icons/pi'
-import {AiOutlineArrowRight,AiOutlineHome} from 'react-icons/ai'
-import {BsPerson} from 'react-icons/bs'
+import {PiStudentDuotone} from 'react-icons/pi'
+import {AiOutlineCheckSquare} from 'react-icons/ai'
+
 
 
 const { Header, Sider, Content } = Layout;
@@ -42,37 +41,38 @@ const Sidebar = () => {
   }
 
   return (
-    <Layout>
+    <Layout >
 
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
-        <div className="demo-logo-vertical mt-3" />
-        <div className="d-flex flex-column vh-100">
+      <Sider trigger={null} collapsible collapsed={collapsed} theme="" className='bg-secondary text-white'>
+        <div className="demo-logo-vertical mt-3 "  />
+        <div className="d-flex flex-column vh-100"  >
           <div>
-            <h4 className="px-3">Menu</h4>
-            <h5 className="px-3 mt-4 mb-0">Task</h5>
+            <h5 className="px-3">Menu</h5>
+            <h6 className="px-3 mt-4 mb-0">Task</h6>
             <Menu
+            className='bg-secondary text-white'
               style={{ marginTop: '10px', marginBottom: '0px' }}
               mode="inline"
               defaultSelectedKeys={['1']}
               items={[
                 {
                   key: '1',
-                  icon: <AiOutlineProfile />,
+                  icon: <MdOutlineSpaceDashboard />,
                   label: <Link to={'/'} style={{ textDecoration: 'none' }}> <span className='d-none d-md-inline'>Dashboard</span> </Link>,
                 },
                 {
                   key: '2',
-                  icon: <AiOutlineMenu />,
+                  icon: <PiStudentDuotone />,
                   label: <Link to={'/students'} style={{ textDecoration: 'none' }}> <span className='d-none d-md-inline'>Students</span> </Link>,
                 },
                 {
                   key: '3',
-                  icon: <MdOutlineDateRange />,
+                  icon: <MdOutlineSubject />,
                   label: <Link to={'/courses'} style={{ textDecoration: 'none' }}> <span className='d-none d-md-inline'>Courses</span> </Link>,
                 },
                 {
                   key: '4',
-                  icon: <AiOutlineDoubleRight />,
+                  icon: <AiOutlineCheckSquare />,
                   label: <Link to={'/attendence'} style={{ textDecoration: 'none' }}> <span className='d-none d-md-inline'>Attendence</span></Link>,
                 },
               ]}
@@ -130,9 +130,9 @@ const Sidebar = () => {
  */}
 
           {/* Logout Button Custom */}
-          <div className="mb-2 mt-auto text-center ">
+          <div className="mb-2 mt-auto text-center " >
 
-            <Link to={'/auth/login'} onClick={handleLogout} className="btn btn-outline-danger w-75  mb-3">
+            <Link to={'/auth/login'} onClick={handleLogout} className="shadow-lg btn btn-danger text-white w-75  mb-3">
               <CiLogout /> <span className='d-none d-md-inline'>{collapsed === false && "Logout"}</span>
             </Link>
           </div>
@@ -142,11 +142,12 @@ const Sidebar = () => {
 
 
       </Sider>
-      <Layout>
+      <Layout >
         <Header
           style={{
             padding: 0,
-            background: colorBgContainer,
+            backgroundColor: '#2D7CE6',
+            
           }}
         >
 
@@ -159,6 +160,7 @@ const Sidebar = () => {
               fontSize: '30px',
               width: 64,
               height: 64,
+              color:'white',
             }}
           />
 
@@ -167,10 +169,12 @@ const Sidebar = () => {
         <Content
           style={{
             overflow: 'scroll',
-            margin: '24px 16px',
-            padding: 24,
+            // margin: '14px',
+            // padding: 12,
             height: 280,
-            background: colorBgContainer,
+            background: '#FDFDFD',
+          
+            
           }}
         >
           <Routes />

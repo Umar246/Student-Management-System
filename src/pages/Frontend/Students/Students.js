@@ -3,18 +3,49 @@ import React from 'react'
 import { useState } from 'react'
 import { AiOutlinePlus } from 'react-icons/ai'
 import { firestore } from '../../../config/firebase'
-import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore/lite'
-import { useEffect } from 'react'
+import { deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore/lite'
 import { PiTrashLight } from 'react-icons/pi';
 import { AiOutlineEdit } from 'react-icons/ai';
+import { useFetchCourses } from '../../../contexts/FetchCourses'
+import { useFetchStudents } from '../../../contexts/FetchStudents'
 
 const initialState = { studentName: '', studentID: '', studentEmail: '', phoneNumber: '', studentAddress: '', courseEnrolled: '' }
 export default function Students() {
   const [isLoading, setIsLoading] = useState(false)
   const [studentData, setStudentData] = useState(initialState)
-  const [fetchCourses, setFetchCourses] = useState([])
-  const [editCourse, setEditCourse] = useState({})
-  const [fetchStudents, setFetchStudents] = useState([])
+  const [searchedWords, setSearchedWords] = useState('')
+
+  const { fetchCourses } = useFetchCourses()
+  const [editStudent, setEditStudent] = useState({})
+  const { fetchStudents, setFetchStudents, fetchedStudents } = useFetchStudents()
+
+  //________________________________________________________________________________________________________________________________
+  // Students Search Bar
+
+  let afterSearchStudents = []
+
+  if (searchedWords === '') {
+    afterSearchStudents = fetchStudents
+  } else {
+    //For Email Search
+    afterSearchStudents = fetchStudents.filter(
+      (student) => student.studentEmail.toLowerCase().includes(searchedWords.toLowerCase())
+        ||
+        //For name search
+        student.studentName.toLowerCase().includes(searchedWords.toLowerCase())
+        ||
+        //For course search
+        student.courseEnrolled.toLowerCase().includes(searchedWords.toLowerCase())
+    )
+
+  }
+  console.log(afterSearchStudents)
+
+  //Sorted Students
+  const sortedStudents = [...afterSearchStudents].sort((firstStudent, secondStudent) => firstStudent.studentID - secondStudent.studentID)
+
+
+
 
   //________________________________________________________________________________________________________________________________
 
@@ -25,52 +56,9 @@ export default function Students() {
 
   const handleChangeForEdit = (e) => {
 
-    setEditCourse({ ...editCourse, [e.target.name]: e.target.value })
+    setEditStudent({ ...editStudent, [e.target.name]: e.target.value })
 
   }
-  //________________________________________________________________________________________________________________________________
-
-  // FetchDocs (For fething document from firestore )
-  const fetchedCourses = async () => {
-
-    let allCourses = [];
-
-    const querySnapshot = await getDocs(collection(firestore, "courses"));
-
-    querySnapshot.forEach((doc) => {
-      // console.log(`${doc.id} => ${doc.data()}`);
-      const data = doc.data()
-      allCourses.push(data)
-    });
-    setFetchCourses(allCourses)
-
-  }
-
-  useEffect(() => {
-    fetchedCourses()
-  }, [])
-
-  //________________________________________________________________________________________________________________________________
-
-  const fetchedStudents = async () => {
-
-    let allStudents = [];
-
-    const querySnapshot = await getDocs(collection(firestore, "students"));
-
-    querySnapshot.forEach((doc) => {
-      // console.log(`${doc.id} => ${doc.data()}`);
-      const data = doc.data()
-      allStudents.push(data)
-    });
-    setFetchStudents(allStudents)
-
-  }
-
-  useEffect(() => {
-    fetchedStudents()
-  }, [])
-
   //________________________________________________________________________________________________________________________________
 
   const handleAddStudent = async (e) => {
@@ -98,11 +86,16 @@ export default function Students() {
 
     let studentInformation = {
       studentName, studentID, studentEmail, phoneNumber, studentAddress, courseEnrolled,
+      courseID: '',
       dateCreated: serverTimestamp(),
       id: Math.random().toString(36).slice(2),
       status: "active",
 
     }
+
+    const selectedCourse = fetchCourses.find((course) => course.courseName === courseEnrolled)
+    // console.log('selectedCourse',selectedCourse)
+    studentInformation.courseID = selectedCourse.id;
 
     setIsLoading(true)
     try {
@@ -141,30 +134,30 @@ export default function Students() {
 
   //________________________________________________________________________________________________________________________________
 
-  const handleEditCourse = (courseInfo) => {
-    setEditCourse(courseInfo)
+  const handleEditStudent = (studentInfo) => {
+    setEditStudent(studentInfo)
   }
   //________________________________________________________________________________________________________________________________
 
-  const handleUpdateCourse = async (courseForEdit) => {
+  const handleUpdateStudent = async (studentForEdit) => {
 
     setIsLoading(true)
-    await setDoc(doc(firestore, "courses", courseForEdit.id), courseForEdit, { merge: true });
+    await setDoc(doc(firestore, "students", studentForEdit.id), studentForEdit, { merge: true });
 
 
-    let courseAfterEdit = fetchCourses.map((oldCourse) => {
+    let studentAfterEdit = fetchStudents.map((oldStudent) => {
 
-      if (oldCourse.id === courseForEdit.id) {
-        return courseForEdit
+      if (oldStudent.id === studentForEdit.id) {
+        return studentForEdit
       } else {
-        return oldCourse
+        return oldStudent
       }
     })
 
-    setFetchCourses(courseAfterEdit)
+    setFetchStudents(studentAfterEdit)
     setIsLoading(false)
     message.success('Course Edited Successfully')
-    setEditCourse(initialState)
+    setEditStudent(initialState)
 
 
 
@@ -178,12 +171,12 @@ export default function Students() {
 
   return (
     <>
-      <div className="container">
+      <div className="container p-3">
         <div className="row">
           <div className="col">
             <h3 className='mb-3'>Students</h3>
 
-            <div className='bg-light p-3'>
+            <div className=' p-3 bg-light'>
 
               <div className="row">
                 <div className="col-12 col-md-4 mt-2 mb-sm-3 mb-md-0">
@@ -191,14 +184,16 @@ export default function Students() {
                 </div>
 
                 <div className="col-12 col-md-4 text-center mb-sm-3 mb-md-0">
-                  <input type="text" placeholder='Search Student...' className='form-control ' />
+                  <div className="input-shadow">
+                    <input type="text" placeholder='Search Student...' onChange={(e) => { setSearchedWords(e.target.value) }} className='form-control shadow-none rounded-5  ' />
+                  </div>
                 </div>
 
 
                 <div className="col-12 col-md-4 d-flex justify-content-end mb-sm-3 mb-md-0">
                   <div className="col-12 col-md-3 ">
 
-                    <button className='btn btn-outline-primary rounded-2 w-100' data-bs-target="#newTodoModal" data-bs-toggle="modal"><AiOutlinePlus size={20} /></button>
+                    <button className='btn btn-dark text-light  rounded-2 w-100' data-bs-target="#newTodoModal" data-bs-toggle="modal"><AiOutlinePlus size={20} /></button>
                   </div>
                 </div>
               </div>
@@ -206,19 +201,19 @@ export default function Students() {
               <div className="table-responsive">
 
 
-                <table className="table mt-3">
-                  <thead>
+                <table className="table mt-3 ">
+                  <thead className='text-center'>
                     <tr>
                       <th scope="col">#</th>
                       <th scope="col">Student Name</th>
                       <th scope="col">Student ID</th>
-                      <th scope="col">Course Email</th>
+                      <th scope="col">Student Email</th>
                       <th scope="col">Course Enrolled</th>
                       <th scope="col">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {fetchStudents.map((student, i) => {
+                  <tbody className='text-center'>
+                    {sortedStudents.map((student, i) => {
                       return (
                         <tr key={i}>
                           <th scope="row">{i + 1}</th>
@@ -232,7 +227,7 @@ export default function Students() {
 
                           <td>
 
-                            <button className='btn  btn-sm  me-2' data-bs-toggle="modal" data-bs-target="#editCourseModal" ><AiOutlineEdit className='text-primary' size={20} /></button>
+                            <button className='btn  btn-sm  ' data-bs-toggle="modal" data-bs-target="#editCourseModal" ><AiOutlineEdit className='text-dark' size={20} onClick={() => handleEditStudent(student)} /></button>
                             <button className='btn  btn-sm'><PiTrashLight size={20} className='text-danger'
                               onClick={() => handleDelete(student)} /></button>
 
@@ -268,35 +263,36 @@ export default function Students() {
               {/* Form (Modal) */}
               <form >
 
-                <div className="row mb-3">
+                <div className="row ">
 
-                  <div className="col-12 col-md-8 mb-3 mb-md-0">
+                  <div className="col-12 col-md-8 mb-3">
                     <input type="text" required name='studentName' value={studentData.studentName} onChange={handleChange} className='form-control' placeholder='Student Name' />
                   </div>
 
-                  <div className="col-12 col-md-4 mb-3 mb-md-0 ">
+                  <div className="col-12 col-md-4 mb-3 ">
                     <input type="number" name='studentID' value={studentData.studentID} onChange={handleChange} placeholder='Student ID ' required className='form-control form-control' />
                   </div>
 
                 </div>
-                <div className="row mb-3">
+                <div className="row ">
 
-                  <div className="col-12  mb-3 mb-md-0">
+                  <div className="col-12  mb-3 ">
                     <input type="email" required name='studentEmail' value={studentData.studentEmail} onChange={handleChange} className='form-control' placeholder='Student Email' />
                   </div>
 
                 </div>
 
-                <div className="row mb-3">
+                <div className="row ">
 
-                  <div className="col-12 col-md-6 mb-3 mb-md-0">
+                  <div className="col-12 col-md-6 mb-3 ">
                     <input type="number" required name='phoneNumber' value={studentData.phoneNumber} onChange={handleChange} className='form-control' placeholder='Phone Number' />
                   </div>
 
-                  <div className="col-12 col-md-6 mb-md-0 ">
+                  <div className="col-12 col-md-6  mb-3">
 
 
-                    <select class="form-select form-select-md mb-3" name='courseEnrolled' aria-label=".form-select-lg example" onChange={handleChange}>
+                    <select class="form-select form-select-md " name='courseEnrolled' aria-label=".form-select-lg example" onChange={handleChange}>
+                      <option value="" defaultChecked>Select</option>
                       {
                         fetchCourses.map((course, i) => {
                           return (
@@ -312,16 +308,23 @@ export default function Students() {
 
                 <div className="row">
 
-                  <div className="col">
+                  <div className="col mb-3">
                     <textarea required className='form-control' onChange={handleChange} value={studentData.studentAddress} name='studentAddress' cols="10" rows="3" placeholder='Student Address' />
                   </div>
 
                 </div>
 
+
+
                 <div className="modal-footer mb-0">
 
                   {!isLoading
-                    ? <button type="button" className="btn btn-outline-primary mb-0 w-100" onClick={handleAddStudent}>Add Student</button>
+                    ?
+
+
+                    <button type="button" className="btn btn-outline-primary mb-0 w-100" onClick={handleAddStudent}>Add Student</button>
+
+
                     : <button type="button" className="btn btn-outline-primary mb-0 w-100" disabled={isLoading}><div className='spinner-border spinner-border-sm'></div></button>
                   }
 
@@ -345,7 +348,7 @@ export default function Students() {
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">
-              <h1 className="modal-title fs-5" id="exampleModalLabel">Edit Course Information</h1>
+              <h1 className="modal-title fs-5" id="exampleModalLabel">Edit Student Information</h1>
               <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div className="modal-body">
@@ -354,30 +357,68 @@ export default function Students() {
               {/* Edit (Modal) */}
               <form >
 
-                <div className="row mb-3">
+                <div className="row ">
 
-                  <div className="col-12 col-md-6 mb-3 mb-md-0">
-                    <input type="text" required name='courseName' value={editCourse.courseName} onChange={handleChangeForEdit} className='form-control' placeholder='Course Name' />
+                  <div className="col-12 col-md-8 mb-3">
+                    <input type="text" required name='studentName' value={editStudent.studentName} onChange={handleChangeForEdit} className='form-control' placeholder='Student Name' />
                   </div>
 
-                  <div className="col-12 col-md-6 mb-3 mb-md-0 ">
-                    <input type="number" name='courseCode' value={editCourse.courseCode} onChange={handleChangeForEdit} placeholder='Course Code' required className='form-control form-control' />
+                  <div className="col-12 col-md-4 mb-3 ">
+                    <input type="number" name='studentID' value={editStudent.studentID} onChange={handleChangeForEdit} placeholder='Student ID ' required className='form-control form-control' />
                   </div>
 
+                </div>
+                <div className="row ">
+
+                  <div className="col-12  mb-3 ">
+                    <input type="email" required name='studentEmail' value={editStudent.studentEmail} onChange={handleChangeForEdit} className='form-control' placeholder='Student Email' />
+                  </div>
+
+                </div>
+
+                <div className="row ">
+
+                  <div className="col-12 col-md-6 mb-3 ">
+                    <input type="number" required name='phoneNumber' value={editStudent.phoneNumber} onChange={handleChangeForEdit} className='form-control' placeholder='Phone Number' />
+                  </div>
+
+                  <div className="col-12 col-md-6  mb-3">
+
+
+                    <select class="form-select form-select-md " value={editStudent.courseEnrolled} name='courseEnrolled' aria-label=".form-select-lg example" onChange={handleChangeForEdit}>
+                      <option value="" >Select</option>
+                      {
+                        fetchCourses.map((course, i) => {
+                          return (
+
+                            <option key={i}>{course.courseName} </option>
+
+                          )
+                        })
+                      }
+                    </select>
+                  </div>
                 </div>
 
                 <div className="row">
 
-                  <div className="col">
-                    <textarea required className='form-control' value={editCourse.description} onChange={handleChangeForEdit} name='description' cols="10" rows="3" placeholder='Description' />
+                  <div className="col mb-3">
+                    <textarea required className='form-control' onChange={handleChangeForEdit} value={editStudent.studentAddress} name='studentAddress' cols="10" rows="3" placeholder='Student Address' />
                   </div>
 
                 </div>
 
+
+
                 <div className="modal-footer mb-0">
 
                   {!isLoading
-                    ? <button type="button" className="btn btn-outline-primary mb-0 w-100" onClick={() => handleUpdateCourse(editCourse)}>Update Course</button>
+                    ?
+
+
+                    <button type="button" className="btn btn-outline-primary mb-0 w-100" onClick={() => handleUpdateStudent(editStudent)}>Update Student</button>
+
+
                     : <button type="button" className="btn btn-outline-primary mb-0 w-100" disabled={isLoading}><div className='spinner-border spinner-border-sm'></div></button>
                   }
 

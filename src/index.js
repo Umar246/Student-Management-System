@@ -5,6 +5,9 @@ import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
 import FetchTodosContextProvider from './contexts/FetchTodosContext';
 import AuthContextProvider from './contexts/AuthContext';
+import FetchCoursesProvider from './contexts/FetchCourses';
+import FetchStudentsProvider from './contexts/FetchStudents';
+import FetchAttendenceProvider from './contexts/FetchAttendence';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -12,7 +15,13 @@ root.render(
     <BrowserRouter>
       <AuthContextProvider>
         <FetchTodosContextProvider>
-          <App />
+          <FetchCoursesProvider>
+            <FetchStudentsProvider>
+              <FetchAttendenceProvider>
+                <App />
+              </FetchAttendenceProvider>
+            </FetchStudentsProvider>
+          </FetchCoursesProvider>
         </FetchTodosContextProvider>
       </AuthContextProvider>
     </BrowserRouter>

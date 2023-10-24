@@ -3,17 +3,37 @@ import React from 'react'
 import { useState } from 'react'
 import { AiOutlinePlus } from 'react-icons/ai'
 import { firestore } from '../../../config/firebase'
-import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore/lite'
-import { useEffect } from 'react'
+import { deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore/lite'
 import { PiTrashLight } from 'react-icons/pi';
 import { AiOutlineEdit } from 'react-icons/ai';
+import { useFetchCourses } from '../../../contexts/FetchCourses'
 
 const initialState = { courseName: '', courseCode: '', description: '' }
 export default function Courses() {
   const [isLoading, setIsLoading] = useState(false)
   const [courseData, setCourseData] = useState(initialState)
-  const [fetchCourses, setFetchCourses] = useState([])
-  const [editCourse ,setEditCourse] = useState({})
+  const { fetchCourses, setFetchCourses, fetchedCourses } = useFetchCourses()
+  const [editCourse, setEditCourse] = useState({})
+  const [searchedWords, setSearchedWords] = useState('')
+
+
+  //________________________________________________________________________________________________________________________________
+
+  let afterSearchCourses = [];
+
+  if (searchedWords === '') {
+    afterSearchCourses = fetchCourses
+  } else {
+    afterSearchCourses = fetchCourses.filter((course) => course.courseName.toLowerCase().includes(searchedWords.toLowerCase())
+      ||
+      course.description.toLowerCase().includes(searchedWords.toLowerCase())
+    )
+  }
+  console.log(afterSearchCourses)
+
+  //Sorted Courses
+  const sortedCourse = [...afterSearchCourses].sort((firstCourse, SecondCourse) => firstCourse.courseCode - SecondCourse.courseCode)
+  console.log(sortedCourse)
 
   //________________________________________________________________________________________________________________________________
 
@@ -21,33 +41,12 @@ export default function Courses() {
     setCourseData({ ...courseData, [e.target.name]: e.target.value })
   }
   //________________________________________________________________________________________________________________________________
-  
+
   const handleChangeForEdit = (e) => {
 
     setEditCourse({ ...editCourse, [e.target.name]: e.target.value })
 
   }
-  //________________________________________________________________________________________________________________________________
-
-  // FetchDocs (For fething document from firestore )
-  const fetchedCourses = async () => {
-
-    let allCourses = [];
-
-    const querySnapshot = await getDocs(collection(firestore, "courses"));
-
-    querySnapshot.forEach((doc) => {
-      // console.log(`${doc.id} => ${doc.data()}`);
-      const data = doc.data()
-      allCourses.push(data)
-    });
-    setFetchCourses(allCourses)
-
-  }
-
-  useEffect(() => {
-    fetchedCourses()
-  }, [])
   //________________________________________________________________________________________________________________________________
 
   const handleAddCourse = async (e) => {
@@ -103,58 +102,51 @@ export default function Courses() {
 
     await deleteDoc(doc(firestore, "courses", courseInfo.id));
     let afterDeleteCourses = fetchCourses.filter((deleteCourse) => {
-     
-    
-       // Jis deleteTodo ki id brabar nai ha toodID.id k us lo waps bhej jo (return) . Jis ki brabar ha us par function chlao mtlb delete kar do
+
+
+      // Jis deleteTodo ki id brabar nai ha toodID.id k us lo waps bhej jo (return) . Jis ki brabar ha us par function chlao mtlb delete kar do
       return deleteCourse.id !== courseInfo.id
     })
     setFetchCourses(afterDeleteCourses)
     message.success("Course Deleted Successfully")
-    
-    
-  }
 
+  }
 
   //________________________________________________________________________________________________________________________________
 
   const handleEditCourse = (courseInfo) => {
     setEditCourse(courseInfo)
   }
-//________________________________________________________________________________________________________________________________
+  //________________________________________________________________________________________________________________________________
 
-const handleUpdateCourse = async (courseForEdit) => {
+  const handleUpdateCourse = async (courseForEdit) => {
 
-  setIsLoading(true)
-  await setDoc(doc(firestore, "courses", courseForEdit.id), courseForEdit, { merge: true });
-
-
-  let courseAfterEdit = fetchCourses.map((oldCourse) => {
-
-    if (oldCourse.id === courseForEdit.id) {
-      return courseForEdit
-    } else {
-      return oldCourse
-    }
-  })
-
-  setFetchCourses(courseAfterEdit)
-  setIsLoading(false)
-  message.success('Course Edited Successfully')
-  setEditCourse(initialState)
+    setIsLoading(true)
+    await setDoc(doc(firestore, "courses", courseForEdit.id), courseForEdit, { merge: true });
 
 
+    let courseAfterEdit = fetchCourses.map((oldCourse) => {
 
-}
+      if (oldCourse.id === courseForEdit.id) {
+        return courseForEdit
+      } else {
+        return oldCourse
+      }
+    })
 
-  
+    setFetchCourses(courseAfterEdit)
+    setIsLoading(false)
+    message.success('Course Edited Successfully')
+    setEditCourse(initialState)
 
+  }
 
   //________________________________________________________________________________________________________________________________
 
 
   return (
     <>
-      <div className="container">
+      <div className="container p-3">
         <div className="row">
           <div className="col">
             <h3 className='mb-3'>Courses</h3>
@@ -167,14 +159,16 @@ const handleUpdateCourse = async (courseForEdit) => {
                 </div>
 
                 <div className="col-12 col-md-4 text-center mb-sm-3 mb-md-0">
-                  <input type="text" placeholder='Search Course...' className='form-control ' />
+                  <div className="input-shadow">
+                    <input type="text" placeholder='Search Course...' onChange={(e) => { setSearchedWords(e.target.value) }} className='form-control shadow-none rounded-5' />
+                  </div>
                 </div>
 
 
                 <div className="col-12 col-md-4 d-flex justify-content-end mb-sm-3 mb-md-0">
                   <div className="col-12 col-md-3 ">
 
-                    <button className='btn btn-outline-primary rounded-2 w-100' data-bs-target="#newTodoModal" data-bs-toggle="modal"><AiOutlinePlus size={20} /></button>
+                    <button className='btn btn-dark text-light rounded-2 w-100' data-bs-target="#newTodoModal" data-bs-toggle="modal"><AiOutlinePlus size={20} /></button>
                   </div>
                 </div>
               </div>
@@ -183,7 +177,7 @@ const handleUpdateCourse = async (courseForEdit) => {
 
 
                 <table className="table mt-3">
-                  <thead>
+                  <thead className='text-center'>
                     <tr>
                       <th scope="col">#</th>
                       <th scope="col">Course Name</th>
@@ -192,18 +186,18 @@ const handleUpdateCourse = async (courseForEdit) => {
                       <th scope="col">Action</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {fetchCourses.map((course, i) => {
+                  <tbody className='text-center'>
+                    {sortedCourse.map((course, i) => {
                       return (
                         <tr key={i}>
                           <th scope="row">{i + 1}</th>
                           <td>{course.courseName}</td>
-                          <td>{course.courseCode}</td>
+                          <td >{course.courseCode}</td>
                           <td>{course.description}</td>
 
                           <td>
 
-                            <button className='btn  btn-sm  me-2' data-bs-toggle="modal" data-bs-target="#editCourseModal" onClick={() => handleEditCourse(course)}><AiOutlineEdit className='text-primary' size={20} /></button>
+                            <button className='btn  btn-sm' data-bs-toggle="modal" data-bs-target="#editCourseModal" onClick={() => handleEditCourse(course)}><AiOutlineEdit className='text-dark' size={20} /></button>
                             <button className='btn  btn-sm' onClick={() => handleDelete(course)}><PiTrashLight size={20} className='text-danger' /></button>
 
                           </td>
@@ -222,7 +216,7 @@ const handleUpdateCourse = async (courseForEdit) => {
       </div>
 
 
-{/* ____________________________________________________________________________________________________________________________________ */}
+      {/* ____________________________________________________________________________________________________________________________________ */}
 
       {/* <!-- Modal --> */}
       <div className="modal fade" id="newTodoModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -331,7 +325,7 @@ const handleUpdateCourse = async (courseForEdit) => {
         </div>
       </div>
 
-      
+
     </>
   )
 }
